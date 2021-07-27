@@ -6,3 +6,6 @@ create table RSMH;
 
 --bikin field
 alter table RSMH Add nama varchar(50);
+
+--bikin field
+alter table RSMH Add nim varchar(50);
