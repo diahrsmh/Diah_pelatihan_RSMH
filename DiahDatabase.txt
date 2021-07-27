@@ -1,0 +1,8 @@
+--bikin database
+create Database DiahDb;
+
+--bikin table
+create table RSMH;
+
+--bikin field
+alter table RSMH Add nama varchar(50);
