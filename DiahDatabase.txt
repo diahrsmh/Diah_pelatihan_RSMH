@@ -1,8 +1,657 @@
---bikin database
-create Database DiahDb;
+---------------       Pembuatan  Database       ---------------
+CREATE DATABASE "DBA";
 
---bikin table
-create table RSMH;
 
---bikin field
-alter table RSMH Add nama varchar(50);
+--------------- Pembuatan Tabel serta Relasinya ---------------
+CREATE TABLE "PEGAWAI"
+(
+    "ID_PEGAWAI" character varying(30) NOT NULL UNIQUE PRIMARY KEY,
+    "NIP" character (18) NOT NULL UNIQUE,
+    "PASSWORD" character varying(100) ,
+    "NAMA" character varying(60) NOT NULL,
+    "AKTIF" character(1),
+    "ROLE" integer,
+    "UPDATED_DATE" timestamp with time zone,
+    "DELETED_DATE" timestamp with time zone,
+    "CREATED_DATE" timestamp with time zone
+);
+
+CREATE TABLE "PEGAWAI_DETAIL"
+(
+    "ID_PEGAWAI" character varying(30) NOT NULL UNIQUE,
+    "GELAR_DEPAN" character varying(30),
+    "GELAR_BELAKANG" character varying(30),
+    "TEMPAT_LAHIR" character varying(50),
+    "TGL_LAHIR" date,
+    "GENDER" character(1),
+    "STATUS" character varying(10),
+    "ALAMAT" character varying(500),
+    "AGAMA" character varying(15),
+    "NO_KONTAK" character varying(15),
+    CONSTRAINT "FK_PEGAWAI_DETAIL_TO_PEGAWAI" FOREIGN KEY ("ID_PEGAWAI")
+        REFERENCES "PEGAWAI" ("ID_PEGAWAI") MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+CREATE TABLE "PEGAWAI_KARTU_IDENTITAS"
+(
+    "ID_PEGAWAI" character varying(30) NOT NULL,
+    "NOMOR" character varying (20),
+    "JENIS_KARTU_IDENTITAS" character varying (30),
+    CONSTRAINT "FK_PEGAWAI_KARTU_IDENTITAS_TO_PEGAWAI" FOREIGN KEY ("ID_PEGAWAI")
+        REFERENCES "PEGAWAI" ("ID_PEGAWAI") MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+CREATE TABLE "PEGAWAI_REKENING"
+(
+    "ID_PEGAWAI" character varying(60) NOT NULL,
+    "NAMA_REKENING" character varying(30),
+    "NO_REKENING" character varying(20),
+    CONSTRAINT "FK_PEGAWAI_REKENING_TO_ID_PEGAWAI" FOREIGN KEY ("ID_PEGAWAI")
+        REFERENCES "PEGAWAI" ("ID_PEGAWAI") MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+-- ### Tabel Tambahan Untuk Trigger ###--
+CREATE TABLE "LOG_PEGAWAI"
+(
+    "ID" integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    "ID_PEGAWAI" character varying(30),
+    "NIP" character(18) NOT NULL,
+    "PASSWORD" character varying(100) NOT NULL,
+    "NAMA" character varying(60) NOT NULL,
+    "AKTIF" character(1),
+    "ROLE" integer,
+    "CREATE_DATE" timestamp with time zone
+);
+
+CREATE TABLE "LOG_PEGAWAI_DETAIL"
+(
+    "ID" integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    "ID_PEGAWAI" character varying(30),
+    "GELAR_DEPAN" character varying(30),
+    "GELAR_BELAKANG" character varying(30),
+    "TEMPAT_LAHIR" character varying(50),
+    "TGL_LAHIR" date,
+    "GENDER" character(1),
+    "STATUS" character varying(10),
+    "ALAMAT" character varying(500),
+    "AGAMA" character varying(15),
+    "NO_KONTAK" character varying(15),
+    "CREATE_DATE" timestamp with time zone
+);
+
+CREATE TABLE "LOG_PEGAWAI_KARTU_IDENTITAS"
+(
+    "ID" integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    "ID_PEGAWAI" character varying(30),
+    "NOMOR" character varying (20),
+    "JENIS_KARTU_IDENTITAS" character varying (30),
+    "CREATE_DATE" timestamp with time zone
+);
+
+CREATE TABLE "LOG_PEGAWAI_REKENING"
+(
+    "ID" integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    "ID_PEGAWAI" character varying(30),
+    "NAMA_REKENING" character varying(30),
+    "NO_REKENING" character varying(20),
+    "CREATE_DATE" timestamp with time zone
+);
+
+---------------       Pembuatan  Function       ---------------
+
+-- ### Function Create 1 ###--
+
+--# Create 1 #--
+CREATE FUNCTION create_pegawai(
+	p_idpegawai character varying,
+	p_nip character,
+	p_password character varying,
+	p_nama character varying,
+	p_role integer)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO "PEGAWAI" (
+			"ID_PEGAWAI",
+			"NIP",
+			"PASSWORD",
+			"NAMA",
+			"AKTIF",
+			"ROLE",
+			"CREATED_DATE",
+			"UPDATED_DATE",
+			"DELETED_DATE"
+    )
+    VALUES (
+             P_IDPEGAWAI,
+             P_NIP,
+             P_PASSWORD,
+             P_NAMA,
+             'Y',--Dikasih Y karena status tidak ada di create sebagai parameter
+             P_ROLE,
+             now(),
+             now(),
+             now()
+	);
+END;
+$$;
+ALTER FUNCTION create_pegawai(character varying, character, character varying, character varying, integer)
+    OWNER TO postgres;
+
+--# Create 2 #--
+CREATE FUNCTION create_pegawaidetail(PID_PEGAWAI character varying, PGELAR_DEPAN character varying, PGELAR_BELAKANG character varying, PTEMPAT_LAHIR character varying, PTGL_LAHIR date, PGENDER character, PSTATUS character varying, PALAMAT character varying, PAGAMA character varying, PNO_KONTAK character varying)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO "PEGAWAI_DETAIL" ("ID_PEGAWAI","GELAR_DEPAN","GELAR_BELAKANG","TEMPAT_LAHIR","TGL_LAHIR","GENDER","STATUS","ALAMAT","AGAMA","NO_KONTAK")
+    VALUES ( PID_PEGAWAI,PGELAR_DEPAN,PGELAR_BELAKANG,PTEMPAT_LAHIR,PTGL_LAHIR,PGENDER,PSTATUS,PALAMAT,PAGAMA,PNO_KONTAK);
+END;
+$$;
+ALTER FUNCTION create_pegawaidetail(character varying, character varying, character varying, character varying, date, character, character varying, character varying, character varying, character varying)
+    OWNER TO postgres;
+
+--# Create 3 #--
+CREATE FUNCTION create_pegawaikartuidentitas(PID_PEGAWAI character varying, PNOMOR character varying, PJENIS_KARTU_IDENTITAS character varying)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO "PEGAWAI_KARTU_IDENTITAS" ("ID_PEGAWAI", "NOMOR", "JENIS_KARTU_IDENTITAS")
+    VALUES (PID_PEGAWAI, PNOMOR, PJENIS_KARTU_IDENTITAS);
+END;
+$$;
+ALTER FUNCTION create_pegawaikartuidentitas(character varying, character varying, character varying)
+    OWNER TO postgres;
+
+--# Create 4 #--
+CREATE FUNCTION create_pegawairekening(PID_PEGAWAI character varying, PNAMA_REKENING character varying, PNO_REKENING character varying)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO "PEGAWAI_REKENING" ("ID_PEGAWAI", "NAMA_REKENING", "NO_REKENING")
+    VALUES (PID_PEGAWAI, PNAMA_REKENING, PNO_REKENING);
+END;
+$$;
+ALTER FUNCTION create_pegawairekening(character varying, character varying, character varying)
+    OWNER TO postgres;
+
+--# Read PEGAWAI #--
+CREATE OR REPLACE FUNCTION read_pegawai()
+    RETURNS TABLE(id_pegawai character varying, nip character, nama character varying, aktif character)
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    return query
+    SELECT "ID_PEGAWAI","NIP","NAMA","AKTIF"
+    FROM "PEGAWAI"
+    ORDER BY "CREATED_DATE" asc;
+END;
+$$;
+ALTER FUNCTION read_pegawai()
+    OWNER TO postgres;
+
+--# Read PEGAWAI dengan 1 parameter#--
+CREATE OR REPLACE FUNCTION read_pegawai_by_id(p_id character varying)
+    RETURNS TABLE(nip character, nama character varying, aktif character)
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    return query
+    SELECT "NIP","NAMA","AKTIF"
+    FROM "PEGAWAI" where "ID_PEGAWAI"=p_id;
+END;
+$$;
+ALTER FUNCTION read_pegawai_by_id(character varying)
+    OWNER TO postgres;
+
+--# Read PEGAWAI dengan 2 parameter#--
+CREATE OR REPLACE FUNCTION read_pegawai_by_id_nama(
+	p_id character varying,
+	p_nama character varying)
+    RETURNS TABLE(nip character, nama character varying, status character)
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    return query
+    SELECT "NIP","NAMA","AKTIF"
+    FROM "PEGAWAI" where "ID_PEGAWAI"=p_id and "NAMA"=p_nama;
+END;
+$$;
+ALTER FUNCTION read_pegawai_by_id_nama(character varying, character varying)
+    OWNER TO postgres;
+
+--# Update PEGAWAI#--
+CREATE OR REPLACE FUNCTION update_pegawai(
+	p_id character varying,
+	p_nip character,
+	p_nama character varying,
+	p_aktif character,
+	p_role integer)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    UPDATE "PEGAWAI"
+    SET "NIP" = p_NIP,
+        "NAMA" = p_NAMA,
+        "AKTIF" = p_AKTIF,
+        "ROLE" = p_ROLE
+    WHERE "ID_PEGAWAI" = p_ID;
+END;
+$$;
+ALTER FUNCTION update_pegawai(character varying, character, character varying, character, integer)
+    OWNER TO postgres;
+
+--# Delete PEGAWAI#--
+CREATE OR REPLACE FUNCTION delete_pegawai(p_id character varying)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    DELETE FROM "PEGAWAI"
+    WHERE "ID" = p_ID;
+END;
+$$;
+ALTER FUNCTION delete_pegawai(character varying)
+    OWNER TO postgres;
+
+--# Delete PEGAWAI dengan UPDATE Aktif#--
+CREATE OR REPLACE FUNCTION delete_pegawai_byupdate(p_id character varying)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    UPDATE "PEGAWAI"
+    SET
+        "AKTIF" = 'N'
+    WHERE "ID_PEGAWAI" = p_ID;
+END;
+$$;
+ALTER FUNCTION delete_pegawai_byupdate(character varying)
+    OWNER TO postgres;
+
+--# Read ALL From View #--
+CREATE FUNCTION get_all_pegawai_detail()
+	RETURNS SETOF get_details_pegawai_leftjoin
+    LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    return query
+    SELECT * FROM  get_details_pegawai_leftjoin;
+END;
+$$;
+ALTER FUNCTION get_all_pegawai_detail()
+    OWNER TO postgres;
+
+
+---------------   Pembuatan View + JOIN Table   ---------------
+
+--# LEFT JOIN #--
+CREATE VIEW get_details_pegawai_leftjoin as
+SELECT
+	a."AKTIF",
+	a."NIP" AS "NOMOR INDUK PEGAWAI",
+	INITCAP(b."GELAR_DEPAN"||a."NAMA"||' '||b."GELAR_BELAKANG") AS NAMA,
+	b."TEMPAT_LAHIR" AS "TEMPAT LAHIR",
+	b."TGL_LAHIR" AS "TANGGAL LAHIR",
+	b."GENDER" AS "JENIS KELAMIN",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK" AS "NOMOR KONTAK",
+	COUNT (C."ID_PEGAWAI") "KARTU IDENTITAS",
+	COUNT (D."ID_PEGAWAI") "TABUNGAN"
+FROM "PEGAWAI" a
+LEFT JOIN "PEGAWAI_DETAIL" b
+	on a."ID_PEGAWAI" = b."ID_PEGAWAI"
+LEFT JOIN "PEGAWAI_KARTU_IDENTITAS" c
+	on a."ID_PEGAWAI" = c."ID_PEGAWAI"
+LEFT JOIN "PEGAWAI_REKENING" d
+	on a."ID_PEGAWAI" = d."ID_PEGAWAI"
+GROUP BY
+	a."AKTIF",
+	a."NIP",
+	NAMA,
+	b."TEMPAT_LAHIR",
+	b."TGL_LAHIR",
+	b."GENDER",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK",
+	C."ID_PEGAWAI",
+	a."ID_PEGAWAI"
+ORDER BY
+	a."ID_PEGAWAI" ASC;
+ALTER TABLE get_details_pegawai_leftjoin
+    OWNER TO postgres;
+
+--# RIGHT JOIN #--
+CREATE VIEW get_details_pegawai_rightjoin as
+SELECT
+	a."AKTIF",
+	a."NIP" AS "NOMOR INDUK PEGAWAI",
+	INITCAP(b."GELAR_DEPAN"||a."NAMA"||' '||b."GELAR_BELAKANG") AS NAMA,
+	b."TEMPAT_LAHIR" AS "TEMPAT LAHIR",
+	b."TGL_LAHIR" AS "TANGGAL LAHIR",
+	b."GENDER" AS "JENIS KELAMIN",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK" AS "NOMOR KONTAK",
+	COUNT (C."ID_PEGAWAI") "KARTU IDENTITAS",
+	COUNT (D."ID_PEGAWAI") "TABUNGAN"
+FROM "PEGAWAI" a
+RIGHT JOIN "PEGAWAI_DETAIL" b
+	on a."ID_PEGAWAI" = b."ID_PEGAWAI"
+RIGHT JOIN "PEGAWAI_KARTU_IDENTITAS" c
+	on a."ID_PEGAWAI" = c."ID_PEGAWAI"
+RIGHT JOIN "PEGAWAI_REKENING" d
+	on a."ID_PEGAWAI" = d."ID_PEGAWAI"
+GROUP BY
+	a."AKTIF",
+	a."NIP",
+	NAMA,
+	b."TEMPAT_LAHIR",
+	b."TGL_LAHIR",
+	b."GENDER",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK",
+	C."ID_PEGAWAI",
+	a."ID_PEGAWAI"
+ORDER BY
+	a."ID_PEGAWAI" ASC;
+ALTER TABLE get_details_pegawai_rightjoin
+    OWNER TO postgres;
+
+--# INNER JOIN #--
+CREATE VIEW get_details_pegawai_innerjoin as
+SELECT
+	a."AKTIF",
+	a."NIP" AS "NOMOR INDUK PEGAWAI",
+	INITCAP(b."GELAR_DEPAN"||a."NAMA"||' '||b."GELAR_BELAKANG") AS NAMA,
+	b."TEMPAT_LAHIR" AS "TEMPAT LAHIR",
+	b."TGL_LAHIR" AS "TANGGAL LAHIR",
+	b."GENDER" AS "JENIS KELAMIN",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK" AS "NOMOR KONTAK",
+	COUNT (C."ID_PEGAWAI") "KARTU IDENTITAS",
+	COUNT (D."ID_PEGAWAI") "TABUNGAN"
+FROM "PEGAWAI" a
+INNER JOIN "PEGAWAI_DETAIL" b
+	on a."ID_PEGAWAI" = b."ID_PEGAWAI"
+INNER JOIN "PEGAWAI_KARTU_IDENTITAS" c
+	on a."ID_PEGAWAI" = c."ID_PEGAWAI"
+INNER JOIN "PEGAWAI_REKENING" d
+	on a."ID_PEGAWAI" = d."ID_PEGAWAI"
+GROUP BY
+	a."AKTIF",
+	a."NIP",
+	NAMA,
+	b."TEMPAT_LAHIR",
+	b."TGL_LAHIR",
+	b."GENDER",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK",
+	C."ID_PEGAWAI",
+	a."ID_PEGAWAI"
+ORDER BY
+	a."ID_PEGAWAI" ASC;
+ALTER TABLE get_details_pegawai_innerjoin
+    OWNER TO postgres;
+
+--# GABUNG TABEL BIASA (NOT RECOMENDED) #--
+CREATE VIEW get_details_pegawai_biasa AS
+SELECT
+	a."AKTIF",
+	a."NIP" AS "NOMOR INDUK PEGAWAI",
+	INITCAP(b."GELAR_DEPAN"||a."NAMA"||' '||b."GELAR_BELAKANG") AS NAMA,
+	b."TEMPAT_LAHIR" AS "TEMPAT LAHIR",
+	b."TGL_LAHIR" AS "TANGGAL LAHIR",
+	b."GENDER" AS "JENIS KELAMIN",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK" AS "NOMOR KONTAK",
+	COUNT (c."ID_PEGAWAI") "KARTU IDENTITAS",
+	COUNT (d."ID_PEGAWAI") "TABUNGAN"
+FROM "PEGAWAI" a , "PEGAWAI_DETAIL" b, "PEGAWAI_KARTU_IDENTITAS" c, "PEGAWAI_REKENING" d
+WHERE
+	a."ID_PEGAWAI" = b."ID_PEGAWAI"
+	AND a."ID_PEGAWAI" = c."ID_PEGAWAI"
+	AND a."ID_PEGAWAI" = d."ID_PEGAWAI"
+GROUP BY
+	a."AKTIF",
+	a."NIP",
+	NAMA,
+	b."TEMPAT_LAHIR",
+	b."TGL_LAHIR",
+	b."GENDER",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK",
+	c."ID_PEGAWAI",
+	a."ID_PEGAWAI"
+ORDER BY
+	a."ID_PEGAWAI" ASC;
+ALTER TABLE get_details_pegawai_biasa
+    OWNER TO postgres;
+
+---------------        Pembuatan Trigger        ---------------
+
+--# TRIGGER FUNCTION PEGAWAI #--
+CREATE OR REPLACE FUNCTION log_pegawai_update()
+  RETURNS TRIGGER
+  LANGUAGE PLPGSQL
+  AS
+$$
+BEGIN
+	IF NEW."NIP" <> OLD."NIP"
+	or NEW."PASSWORD" <> OLD."PASSWORD"
+	or NEW."NAMA" <> OLD."NAMA"
+	or NEW."AKTIF" <> OLD."AKTIF"
+	or NEW."ROLE" <> OLD."ROLE"
+	THEN
+		 INSERT INTO "LOG_PEGAWAI"("ID_PEGAWAI","NIP","PASSWORD","NAMA","AKTIF","ROLE","CREATE_DATE")
+		 VALUES(
+			     OLD."ID_PEGAWAI"
+				,OLD."NIP"
+				,OLD."PASSWORD"
+				,OLD."NAMA"
+				,OLD."AKTIF"
+				,OLD."ROLE"
+				,now()
+			   );
+	END IF;
+	RETURN NEW;
+END;
+$$;
+--# TRIGGER PEGAWAI #--
+CREATE TRIGGER update_pegawai
+  BEFORE UPDATE
+  ON "PEGAWAI"
+  FOR EACH ROW
+  EXECUTE PROCEDURE log_pegawai_update();
+
+--# TRIGGER FUNCTION PEGAWAI_DETAIL #--
+CREATE OR REPLACE FUNCTION log_pegawai_detail_update()
+  RETURNS TRIGGER
+  LANGUAGE PLPGSQL
+  AS
+$$
+BEGIN
+	IF NEW."GELAR_DEPAN" <> OLD."GELAR_DEPAN"
+	or NEW."GELAR_BELAKANG" <> OLD."GELAR_BELAKANG"
+    or NEW."TEMPAT_LAHIR" <> OLD."TEMPAT_LAHIR"
+    or NEW."TGL_LAHIR" <> OLD."TGL_LAHIR"
+    or NEW."GENDER" <> OLD."GENDER"
+    or NEW."STATUS" <> OLD."STATUS"
+    or NEW."ALAMAT" <> OLD."ALAMAT"
+    or NEW."AGAMA" <> OLD."AGAMA"
+    or NEW."NO_KONTAK" <> OLD."NO_KONTAK"
+	THEN
+		 INSERT INTO "LOG_PEGAWAI_DETAIL"("ID_PEGAWAI","GELAR_DEPAN","GELAR_BELAKANG","TEMPAT_LAHIR","TGL_LAHIR","GENDER","STATUS","ALAMAT","AGAMA","NO_KONTAK","CREATE_DATE")
+		 VALUES(
+			     OLD."ID_PEGAWAI"
+				,OLD."GELAR_DEPAN"
+				,OLD."GELAR_BELAKANG"
+				,OLD."TEMPAT_LAHIR"
+				,OLD."TGL_LAHIR"
+				,OLD."GENDER"
+				,OLD."STATUS"
+				,OLD."ALAMAT"
+				,OLD."AGAMA"
+				,OLD."NO_KONTAK"
+				,now()
+			   );
+	END IF;
+	RETURN NEW;
+END;
+$$;
+--# TRIGGER PEGAWAI_DETAIL #--
+CREATE TRIGGER update_pegawai_detail
+  BEFORE UPDATE
+  ON "PEGAWAI_DETAIL"
+  FOR EACH ROW
+  EXECUTE PROCEDURE log_pegawai_detail_update();
+
+--# TRIGGER FUNCTION PEGAWAI_KARTU_IDENTITAS #--
+CREATE OR REPLACE FUNCTION log_pegawai_kartu_identitas_update()
+  RETURNS TRIGGER
+  LANGUAGE PLPGSQL
+  AS
+$$
+BEGIN
+	IF NEW."NOMOR" <> OLD."NOMOR"
+    or NEW."JENIS_KARTU_IDENTITAS" <> OLD."JENIS_KARTU_IDENTITAS"
+	THEN
+		 INSERT INTO "LOG_PEGAWAI_KARTU_IDENTITAS"("ID_PEGAWAI","NOMOR","JENIS_KARTU_IDENTITAS","CREATE_DATE")
+		 VALUES(
+			     OLD."ID_PEGAWAI"
+				,OLD."NOMOR"
+				,OLD."JENIS_KARTU_IDENTITAS"
+				,now()
+			   );
+	END IF;
+	RETURN NEW;
+END;
+$$;
+--# TRIGGER PEGAWAI_KARTU_IDENTITAS #--
+CREATE TRIGGER update_pegawai_kartu_identitas
+  BEFORE UPDATE
+  ON "PEGAWAI_KARTU_IDENTITAS"
+  FOR EACH ROW
+  EXECUTE PROCEDURE log_pegawai_kartu_identitas_update();
+
+--# TRIGGER FUNCTION PEGAWAI_REKENING #--
+CREATE OR REPLACE FUNCTION log_pegawai_rekening_update()
+  RETURNS TRIGGER
+  LANGUAGE PLPGSQL
+  AS
+$$
+BEGIN
+	IF NEW."NAMA_REKENING" <> OLD."NAMA_REKENING"
+    or NEW."NO_REKENING" <> OLD."NO_REKENING"
+	THEN
+		 INSERT INTO "LOG_PEGAWAI_REKENING"("ID_PEGAWAI","NAMA_REKENING","NO_REKENING","CREATE_DATE")
+		 VALUES(
+			     OLD."ID_PEGAWAI"
+				,OLD."NAMA_REKENING"
+				,OLD."NO_REKENING"
+				,now()
+			   );
+	END IF;
+	RETURN NEW;
+END;
+$$;
+--# TRIGGER FUNCTION PEGAWAI_REKENING #--
+CREATE TRIGGER update_pegawai_rekening
+  BEFORE UPDATE
+  ON "PEGAWAI_REKENING"
+  FOR EACH ROW
+  EXECUTE PROCEDURE log_pegawai_rekening_update();
+
+---------------   Pembuatan  Materialize View   ---------------
+CREATE MATERIALIZED VIEW get_details_pegawai_materialized AS
+SELECT
+	a."AKTIF",
+	a."NIP" AS "NOMOR INDUK PEGAWAI",
+	INITCAP(b."GELAR_DEPAN"||a."NAMA"||' '||b."GELAR_BELAKANG") AS NAMA,
+	b."TEMPAT_LAHIR" AS "TEMPAT LAHIR",
+	b."TGL_LAHIR" AS "TANGGAL LAHIR",
+	b."GENDER" AS "JENIS KELAMIN",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK" AS "NOMOR KONTAK",
+	COUNT (C."ID_PEGAWAI") "KARTU IDENTITAS",
+	COUNT (D."ID_PEGAWAI") "TABUNGAN"
+FROM "PEGAWAI" a
+LEFT JOIN "PEGAWAI_DETAIL" b
+	on a."ID_PEGAWAI" = b."ID_PEGAWAI"
+LEFT JOIN "PEGAWAI_KARTU_IDENTITAS" c
+	on a."ID_PEGAWAI" = c."ID_PEGAWAI"
+LEFT JOIN "PEGAWAI_REKENING" d
+	on a."ID_PEGAWAI" = d."ID_PEGAWAI"
+GROUP BY
+	a."AKTIF",
+	a."NIP",
+	NAMA,
+	b."TEMPAT_LAHIR",
+	b."TGL_LAHIR",
+	b."GENDER",
+	b."STATUS",
+	b."ALAMAT",
+	b."AGAMA",
+	b."NO_KONTAK",
+	C."ID_PEGAWAI",
+	a."ID_PEGAWAI"
+ORDER BY
+	a."ID_PEGAWAI" ASC
+WITH NO DATA;
+
+CREATE UNIQUE INDEX pegawai_materialized
+	ON get_details_pegawai_materialized ("NOMOR INDUK PEGAWAI");
+
+--Sebelum dipanggil Jangan lupa di refresh dulu supaya data materialized bisa dilihat yg terbaru
+REFRESH MATERIALIZED VIEW get_details_pegawai_materialized;
+
+---------------     QUERY PEMANGGILAN DATA     ---------------
+
+---------------     QUERY PEMANGGILAN DATA     ---------------
+
+--select * from create_pegawai('20210819930203011001','199302032020122007','d14h','Diah Arsyad',1);
+--select * from create_pegawai('12345678901234567890','123456789012345678','xxxx','Mr X',1);
+--select * from create_pegawaidetail('20210819930203011001','','S. Kom','Palembang','03/02/1993','P','Single','Jl. Seduduk Putih','Islam','085267054656')
+--select * from create_pegawaidetail('12345678901234567890','Prof. DR. ','S. E','Paris','24/12/1990','L','Menikah','Jl. kan misi','Ateis','0896xxxxxxxx')
+--select * from create_pegawaikartuidentitas('20210819930203011001','123456789012345678','KTP')
+--select * from create_pegawaikartuidentitas('20210819930203011001','987654321012345678','NPWP')
+--select * from create_pegawaikartuidentitas('12345678901234567890','999999999999999999','KTP')
+--select * from create_pegawairekening('20210819930203011001','Bank Mandiri','1234567890')
+
+select * from read_pegawai()
+select * from "PEGAWAI_DETAIL"
+select * from get_all_pegawai_detail()
+select * from get_details_pegawai_leftjoin
+select * from update_pegawai('12345678901234567890','123456789012345678','Tes lagiii','N',1)
+select * from "LOG_PEGAWAI"
+select * from get_all_pegawai_detail();
+
+REFRESH MATERIALIZED VIEW get_details_pegawai_materialized;
+SELECT * FROM get_details_pegawai_materialized;
